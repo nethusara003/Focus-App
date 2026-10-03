@@ -9,14 +9,35 @@ A modular, clean, and highly robust command-line "Daily Focus" task management a
   - `storage.py`: Atomic database operations, error-resilient load/save, auto-backup of corrupt data files, and directory setup.
   - `app.py`: Logic layer containing sorting algorithms, filters, task editing, statistics, and reopen mechanics.
   - `focus.py`: Parse-level and terminal CLI interaction (Argparse).
+  - `timer.py`: Pomodoro-style focus countdown logic (pure, testable functions).
   - `__main__.py`: Allows running the package as `python3 -m daily_focus`.
 - `focus.py`: Top-level wrapper script (re-exports `daily_focus`).
 - `tests.py`: Broad-coverage automated unit test suite.
 
 ## Requirements
 
-- Python 3.6+
+- Python 3.8+
 - No third-party dependencies required.
+
+## Installation
+
+Install it as a proper command-line tool (editable mode, so code changes take effect immediately):
+
+```bash
+git clone https://github.com/nethusara003/Focus-App.git
+cd Focus-App
+pip install -e .
+```
+
+This creates a global `focus` command you can run from any directory:
+
+```bash
+focus add "Write report" -p high
+focus list
+focus timer 25
+```
+
+Your tasks live in `~/.config/focus/tasks.json` by default, so they follow you regardless of where you run the command.
 
 ## Execution Workflows
 
@@ -28,6 +49,9 @@ python3 focus.py [command]
 
 # Workflow 2: Via python module execution
 python3 -m daily_focus [command]
+
+# Workflow 3: Via the installed `focus` command (after `pip install -e .`)
+focus [command]
 ```
 
 ## Storage & Resiliency Behavior
@@ -112,6 +136,15 @@ python3 focus.py delete 2 --yes
 Displays task counts and statistics, including total tasks, pending tasks, completed tasks, and tasks completed today:
 ```bash
 python3 focus.py stats
+```
+
+### 8. Focus Timer
+Start a pomodoro-style focus countdown with a live timer in your terminal. Press Ctrl+C to cancel at any time.
+```bash
+python3 focus.py timer              # 25-minute focus session (default)
+python3 focus.py timer 50           # 50-minute focus session
+python3 focus.py timer 25 --break 5 # 25 min focus, then a 5 min break
+python3 focus.py timer 25 --task 2  # focus on task 2 (shows its title)
 ```
 
 ---

@@ -5,6 +5,7 @@ from datetime import datetime
 from .storage import Storage, get_default_db_path
 from .app import FocusApp
 from .models import Priority
+from .timer import run_timer
 
 def format_task(task: "Task") -> str:
     status = "[x]" if task.completed else "[ ]"
@@ -87,6 +88,29 @@ def main():
     # Stats command
     subparsers.add_parser("stats", help="Show task statistics")
 
+    # Timer command
+    timer_parser = subparsers.add_parser("timer", help="Start a focus timer (pomodoro)")
+    timer_parser.add_argument(
+        "minutes",
+        type=int,
+        nargs="?",
+        default=25,
+        help="Focus duration in minutes (default: 25)"
+    )
+    timer_parser.add_argument(
+        "--break",
+        dest="break_minutes",
+        type=int,
+        default=0,
+        help="Break duration in minutes after the focus session (default: 0)"
+    )
+    timer_parser.add_argument(
+        "--task",
+        type=int,
+        default=None,
+        help="Task ID to focus on (shows its title while timing)"
+    )
+
     args = parser.parse_args()
 
     if not args.command:
@@ -164,6 +188,39 @@ def main():
             print(f"  Pending Tasks:     {stats['pending']}")
             print(f"  Completed Tasks:   {stats['completed']}")
             print(f"  Completed Today:   {stats['completed_today']}")
+
+        elif args.command == "timer":
+            if args.minutes <= 0:
+                raise ValueError("Timer duration must be a positive number of minutes.")
+            if args.break_minutes < 0:
+                raise ValueError("Break duration cannot be negative.")
+
+            task_title = None
+            if args.task is not None:
+                tasks_by_id = {t.id: t for t in storage.load_tasks()}
+                if args.task not in tasks_by_id:
+                    raise ValueError(f"Task with ID {args.task} not found.")
+                task_title = tasks_by_id[args.task].title
+
+            session_desc = f" on '{task_title}'" if task_title else ""
+            print(f"Starting {args.minutes}-minute focus session{session_desc}. Press Ctrl+C to cancel.")
+            completed = run_timer(args.minutes * 60, label="Focus")
+
+            if not completed:
+                print("\nTimer cancelled.")
+                sys.exit(0)
+
+            print("\a", end="", flush=True)
+            print("\nFocus session complete! Well done.")
+
+            if args.break_minutes > 0:
+                print(f"Starting {args.break_minutes}-minute break. Press Ctrl+C to skip.")
+                break_done = run_timer(args.break_minutes * 60, label="Break")
+                print("\a", end="", flush=True)
+                if break_done:
+                    print("\nBreak over! Back to it.")
+                else:
+                    print("\nBreak skipped.")
 
     except ValueError as e:
         print(f"Error: {e}", file=sys.stderr)

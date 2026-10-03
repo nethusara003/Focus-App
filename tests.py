@@ -6,6 +6,7 @@ from datetime import datetime, timedelta
 from daily_focus.models import Task, Priority
 from daily_focus.storage import Storage, get_default_db_path
 from daily_focus.app import FocusApp
+from daily_focus.timer import run_timer, format_duration
 
 class TestFocusApp(unittest.TestCase):
     def setUp(self):
@@ -284,6 +285,39 @@ class TestFocusApp(unittest.TestCase):
         self.assertIsNotNone(task.created_at) # filled with default/current datetime
         self.assertIsNone(task.completed_at)
         self.assertIsNone(task.due_date)
+
+class TestFocusTimer(unittest.TestCase):
+    def test_format_duration(self):
+        self.assertEqual(format_duration(0), "00:00")
+        self.assertEqual(format_duration(5), "00:05")
+        self.assertEqual(format_duration(65), "01:05")
+        self.assertEqual(format_duration(1500), "25:00")
+        self.assertEqual(format_duration(3600), "1:00:00")
+        self.assertEqual(format_duration(3661), "1:01:01")
+
+    def test_run_timer_completes(self):
+        ticks = []
+        sleeps = []
+        result = run_timer(3, tick=ticks.append, sleep=lambda s: sleeps.append(s))
+        self.assertTrue(result)
+        self.assertEqual(ticks, [3, 2, 1, 0])
+        self.assertEqual(sleeps, [1, 1, 1])
+
+    def test_run_timer_invalid_duration(self):
+        with self.assertRaises(ValueError):
+            run_timer(0, tick=lambda r: None)
+        with self.assertRaises(ValueError):
+            run_timer(-5, tick=lambda r: None)
+
+    def test_run_timer_cancelled(self):
+        def cancelling_sleep(s):
+            raise KeyboardInterrupt
+        ticks = []
+        result = run_timer(60, tick=ticks.append, sleep=cancelling_sleep)
+        self.assertFalse(result)
+        # First tick fired, then Ctrl+C cancelled the session
+        self.assertEqual(ticks, [60])
+
 
 if __name__ == "__main__":
     unittest.main()

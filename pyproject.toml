@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "daily-focus"
+version = "0.1.0"
+description = "A simple command-line task manager with a pomodoro focus timer (standard library only)"
+readme = "README.md"
+requires-python = ">=3.8"
+
+[project.scripts]
+focus = "daily_focus.focus:main"
+
+[tool.setuptools.packages.find]
+include = ["daily_focus*"]
